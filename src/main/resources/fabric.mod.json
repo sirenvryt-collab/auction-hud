@@ -3,7 +3,7 @@
 	"id": "donutauctionhud",
 	"version": "${version}",
 	"name": "Donut Auction HUD",
-	"description": "A client-side auction HUD and item browser built specifically for DonutSMP. Tracks the live auction countdown, highest bidder and bid amount by parsing '<Name> paid you $ <Amount>' chat messages, and only activates while connected to DonutSMP.",
+	"description": "A client-side auction HUD and item browser built specifically for DonutSMP. Tracks the live auction countdown, highest bidder and bid amount by parsing DonutSMP's 'paid you' chat messages, and only activates while connected to DonutSMP.",
 	"authors": [
 		"You"
 	],
