@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "donutauctionhud",
+	"version": "${version}",
+	"name": "Donut Auction HUD",
+	"description": "A client-side auction HUD and item browser built specifically for DonutSMP. Tracks the live auction countdown, highest bidder and bid amount by parsing '<Name> paid you $ <Amount>' chat messages, and only activates while connected to DonutSMP.",
+	"authors": [
+		"You"
+	],
+	"contact": {
+		"homepage": "https://donutsmp.net"
+	},
+	"license": "CC0-1.0",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.donutauction.DonutAuctionHudClient"
+		]
+	},
+	"mixins": [],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"fabric-api": "*",
+		"minecraft": "1.21.11",
+		"java": ">=21"
+	}
+}
