@@ -3,6 +3,7 @@ package com.donutauction.gui;
 import com.donutauction.AuctionItem;
 import com.donutauction.AuctionState;
 import com.donutauction.util.MoneyFormat;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -130,7 +131,7 @@ public class AuctionBrowserScreen extends Screen {
 
         // List panel background + border.
         context.fill(left, top, left + width, bottom, 0xB0000000);
-        context.drawBorder(left, top, width, bottom - top, 0xFF3A3A3A);
+        context.drawStrokedRectangle(left, top, width, bottom - top, 0xFF3A3A3A);
 
         // Clip rendering to the list area so rows don't bleed outside it.
         context.enableScissor(left + 1, top + 1, left + width - 1, bottom - 1);
@@ -185,7 +186,7 @@ public class AuctionBrowserScreen extends Screen {
         }
         context.fill(x, y, x + width, y + ROW_HEIGHT - 2, bg);
         if (selected) {
-            context.drawBorder(x, y, width, ROW_HEIGHT - 2, 0xFF47A0FF);
+            context.drawStrokedRectangle(x, y, width, ROW_HEIGHT - 2, 0xFF47A0FF);
         }
 
         // Item icon.
@@ -253,7 +254,10 @@ public class AuctionBrowserScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+
         int left = listLeft();
         int width = listWidth();
         int top = listTop();
@@ -268,7 +272,7 @@ public class AuctionBrowserScreen extends Screen {
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
