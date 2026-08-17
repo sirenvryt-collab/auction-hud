@@ -9,6 +9,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -17,8 +19,9 @@ public final class AuctionHudRenderer implements HudElement {
     public static boolean hudVisible = true;
 
     private static final int PANEL_WIDTH = 210;
-    private static final int PANEL_HEIGHT = 72;
+    private static final int PANEL_HEIGHT = 78;
     private static final int MARGIN = 8;
+    private static final int ICON_SIZE = 16;
 
     // Colors (blue theme)
     private static final int COLOR_PANEL_BG = 0xCC0A1622;
@@ -74,9 +77,22 @@ public final class AuctionHudRenderer implements HudElement {
         int contentY = y + titleHeight + 6;
         int lineHeight = textRenderer.fontHeight + 4;
 
-        String itemLine = trimToWidth(textRenderer, state.getCurrentItemName(), PANEL_WIDTH - 16);
-        context.drawText(textRenderer, Text.literal(itemLine), contentX, contentY, 0xFFFFFFFF, true);
-        contentY += lineHeight;
+        // Item name (+ icon, if the typed name matched a real Minecraft item).
+        int itemTextX = contentX;
+        int itemMaxWidth = PANEL_WIDTH - 16;
+        int itemRowHeight = lineHeight;
+
+        Item icon = state.getCurrentItemIcon();
+        if (icon != null) {
+            context.drawItem(new ItemStack(icon), contentX, contentY - 3);
+            itemTextX = contentX + ICON_SIZE + 4;
+            itemMaxWidth -= (ICON_SIZE + 4);
+            itemRowHeight = Math.max(lineHeight, ICON_SIZE + 2);
+        }
+
+        String itemLine = trimToWidth(textRenderer, state.getCurrentItemName(), itemMaxWidth);
+        context.drawText(textRenderer, Text.literal(itemLine), itemTextX, contentY, 0xFFFFFFFF, true);
+        contentY += itemRowHeight;
 
         long remainingMs = state.getRemainingMillis();
         String timeStr = formatDuration(remainingMs);
