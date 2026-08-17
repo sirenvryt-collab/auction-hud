@@ -4,7 +4,7 @@ import com.donutauction.AuctionState;
 import com.donutauction.ServerDetector;
 import com.donutauction.gui.AuctionBrowserScreen;
 import com.donutauction.util.MoneyFormat;
-import net.fabricmc.fabric.api.client.rendering.v1.HudElement;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -66,7 +66,7 @@ public final class AuctionHudRenderer implements HudElement {
     private void drawPanel(DrawContext context, TextRenderer textRenderer, AuctionState state, int x, int y) {
         // Panel background + border.
         context.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, COLOR_PANEL_BG);
-        context.drawBorder(x, y, PANEL_WIDTH, PANEL_HEIGHT, COLOR_PANEL_BORDER);
+        context.drawStrokedRectangle(x, y, PANEL_WIDTH, PANEL_HEIGHT, COLOR_PANEL_BORDER);
 
         // Title bar.
         int titleHeight = 16;
