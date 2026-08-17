@@ -1,10 +1,14 @@
 package com.donutauction;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public final class AuctionState {
 
@@ -16,6 +20,7 @@ public final class AuctionState {
     private final List<AuctionItem> items = new ArrayList<>();
 
     private String currentItemName = "Mystery Crate Key";
+    private Item currentItemIcon = null;
     private String highestBidder = "Nobody yet";
     private double highestBid = 0;
     private double minimumBid = 0;
@@ -30,6 +35,7 @@ public final class AuctionState {
 
     public synchronized void start(String itemName, double minimumBid, int durationSec) {
         this.currentItemName = itemName;
+        this.currentItemIcon = resolveItemIcon(itemName);
         this.minimumBid = Math.max(0, minimumBid);
         this.durationMillis = Math.max(1, durationSec) * 1000L;
         this.active = true;
@@ -95,10 +101,62 @@ public final class AuctionState {
 
     public synchronized void setCurrentItemName(String name) {
         this.currentItemName = name;
+        this.currentItemIcon = resolveItemIcon(name);
+    }
+
+    /**
+     * The vanilla item icon to draw next to the item name, if the typed
+     * name matched a real Minecraft item (or one of the browsable example
+     * items). Null if no match was found - the HUD just won't draw an icon.
+     */
+    public synchronized Item getCurrentItemIcon() {
+        return currentItemIcon;
     }
 
     public List<AuctionItem> getItems() {
         return Collections.unmodifiableList(items);
+    }
+
+    /**
+     * Tries to resolve a typed item name to a real Minecraft item, so the
+     * HUD can show its icon. First tries a direct vanilla registry match
+     * (e.g. "Elytra" -> minecraft:elytra, "Nether Star" -> minecraft:nether_star),
+     * then falls back to matching against the browsable example item list
+     * by display name. Returns null if nothing matches.
+     */
+    private Item resolveItemIcon(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+
+        String normalized = name.trim().toLowerCase(Locale.ROOT)
+                .replace(' ', '_')
+                .replaceAll("[^a-z0-9_]", "");
+
+        if (!normalized.isEmpty()) {
+            Identifier id = Identifier.of("minecraft", normalized);
+            Item registryMatch = Registries.ITEM.get(id);
+            if (registryMatch != Items.AIR) {
+                return registryMatch;
+            }
+        }
+
+        String query = name.trim().toLowerCase(Locale.ROOT);
+
+        for (AuctionItem item : items) {
+            if (item.displayName().toLowerCase(Locale.ROOT).equals(query)) {
+                return item.item();
+            }
+        }
+
+        for (AuctionItem item : items) {
+            String itemName = item.displayName().toLowerCase(Locale.ROOT);
+            if (itemName.contains(query) || query.contains(itemName)) {
+                return item.item();
+            }
+        }
+
+        return null;
     }
 
     private void seedExampleItems() {
