@@ -2,31 +2,27 @@ package com.donutauction;
 
 import com.donutauction.gui.AuctionBrowserScreen;
 import com.donutauction.hud.AuctionHudRenderer;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Client-side entrypoint for the Donut Auction HUD mod.
- * <p>
- * This mod is entirely client-side: it does not add any blocks, items or
- * server logic. It only reads chat messages and renders UI, and every
- * feature is gated behind {@link ServerDetector#isDonutSmp()} so it stays
- * completely dormant on any server other than DonutSMP.
- */
 public class DonutAuctionHudClient implements ClientModInitializer {
 
     public static final String MOD_ID = "donutauctionhud";
 
-    // As of Minecraft 1.21.9, KeyBinding categories are identified by an
-    // Identifier-based KeyBinding.Category record rather than a raw
-    // translation-key string. Its lang entry is "key.category.<namespace>.<path>".
     private static final KeyBinding.Category KEY_CATEGORY =
             new KeyBinding.Category(Identifier.of(MOD_ID, "general"));
 
@@ -35,13 +31,10 @@ public class DonutAuctionHudClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        // Parse "Name paid you $ Amount" chat messages into bids.
         ChatBidListener.register();
 
-        // Register the always-on countdown/bidder HUD panel.
         HudElementRegistry.addLast(Identifier.of(MOD_ID, "auction_hud"), new AuctionHudRenderer());
 
-        // Register keybindings.
         openBrowserKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.donutauctionhud.open_browser",
                 InputUtil.Type.KEYSYM,
@@ -57,6 +50,39 @@ public class DonutAuctionHudClient implements ClientModInitializer {
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
+
+        registerCommands();
+    }
+
+    private void registerCommands() {
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
+                // /auctionstart "<item name>" <minBid> <durationSeconds>
+                // Quote the item name if it has spaces, e.g. "Dragon Egg".
+                ClientCommandManager.literal("auctionstart")
+                        .then(ClientCommandManager.argument("item", StringArgumentType.string())
+                                .then(ClientCommandManager.argument("minBid", DoubleArgumentType.doubleArg(0))
+                                        .then(ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                                                .executes(ctx -> runStart(
+                                                        StringArgumentType.getString(ctx, "item"),
+                                                        DoubleArgumentType.getDouble(ctx, "minBid"),
+                                                        IntegerArgumentType.getInteger(ctx, "seconds")
+                                                )))))
+        ));
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
+                ClientCommandManager.literal("auctionstop")
+                        .executes(ctx -> {
+                            AuctionState.INSTANCE.stop();
+                            ctx.getSource().sendFeedback(
+                                    Text.literal("Auction ended.").formatted(Formatting.BLUE));
+                            return 1;
+                        })
+        ));
+    }
+
+    private int runStart(String item, double minBid, int seconds) {
+        AuctionState.INSTANCE.start(item, minBid, seconds);
+        return 1;
     }
 
     private void onClientTick(MinecraftClient client) {
