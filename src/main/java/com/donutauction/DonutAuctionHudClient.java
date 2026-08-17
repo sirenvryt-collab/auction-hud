@@ -2,7 +2,7 @@ package com.donutauction;
 
 import com.donutauction.gui.AuctionBrowserScreen;
 import com.donutauction.hud.AuctionHudRenderer;
-import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.donutauction.util.MoneyFormat;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
@@ -58,13 +58,14 @@ public class DonutAuctionHudClient implements ClientModInitializer {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
                 // /auctionstart "<item name>" <minBid> <durationSeconds>
                 // Quote the item name if it has spaces, e.g. "Dragon Egg".
+                // minBid accepts shorthand like 50k, 50m, 1.5b, or a plain number.
                 ClientCommandManager.literal("auctionstart")
                         .then(ClientCommandManager.argument("item", StringArgumentType.string())
-                                .then(ClientCommandManager.argument("minBid", DoubleArgumentType.doubleArg(0))
+                                .then(ClientCommandManager.argument("minBid", StringArgumentType.string())
                                         .then(ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1))
                                                 .executes(ctx -> runStart(
                                                         StringArgumentType.getString(ctx, "item"),
-                                                        DoubleArgumentType.getDouble(ctx, "minBid"),
+                                                        MoneyFormat.parseAmount(StringArgumentType.getString(ctx, "minBid")),
                                                         IntegerArgumentType.getInteger(ctx, "seconds")
                                                 )))))
         ));
