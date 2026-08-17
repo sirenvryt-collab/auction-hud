@@ -106,7 +106,7 @@ public class AuctionBrowserScreen extends Screen {
         // Header.
         context.drawCenteredTextWithShadow(
                 this.textRenderer,
-                Text.literal("Auction House Browser").formatted(Formatting.BOLD, Formatting.GOLD),
+                Text.literal("Current Auction Browser").formatted(Formatting.BOLD, Formatting.BLUE),
                 this.width / 2,
                 12,
                 0xFFFFFFFF
@@ -237,7 +237,7 @@ public class AuctionBrowserScreen extends Screen {
         int thumbHeight = Math.max(16, (int) ((double) visibleHeight / contentHeight * trackHeight));
         int thumbY = trackY + (int) ((trackHeight - thumbHeight) * scrollFraction);
 
-        context.fill(trackX, thumbY, trackX + 4, thumbY + thumbHeight, 0xFFFFA000);
+        context.fill(trackX, thumbY, trackX + 4, thumbY + thumbHeight, 0xFF3B82F6);
     }
 
     // ------------------------------------------------------------
