@@ -27,6 +27,7 @@ public final class AuctionState {
     private long auctionEndTimeMillis;
     private long durationMillis = DEFAULT_DURATION_MS;
 
+    /** Whether an auction is currently running. Only true between /auctionstart and expiry/stop. */
     private boolean active = false;
 
     private AuctionState() {
@@ -42,12 +43,24 @@ public final class AuctionState {
         resetTimer();
     }
 
+    /** Stops the current auction (if any) and hides the HUD. Called by /auctionstop. */
     public synchronized void stop() {
         this.active = false;
     }
 
+    /**
+     * True only while an auction has been started AND the timer hasn't run
+     * out yet. Once the timer hits zero, this PERMANENTLY flips `active` to
+     * false right here - it's not just a computed check. That's what stops a
+     * late "paid you" bid from ever reviving/extending an ended auction:
+     * registerBid() calls isActive() first, sees active already latched to
+     * false, and bails out before touching the highest bid or the timer.
+     */
     public synchronized boolean isActive() {
-        return active && !isEnded();
+        if (active && isEnded()) {
+            active = false;
+        }
+        return active;
     }
 
     public synchronized double getMinimumBid() {
@@ -55,7 +68,7 @@ public final class AuctionState {
     }
 
     public synchronized void registerBid(String bidderName, double amount) {
-        if (!active || amount <= 0 || amount < minimumBid) {
+        if (!isActive() || amount <= 0 || amount < minimumBid) {
             return;
         }
         if (amount > highestBid) {
@@ -104,11 +117,6 @@ public final class AuctionState {
         this.currentItemIcon = resolveItemIcon(name);
     }
 
-    /**
-     * The vanilla item icon to draw next to the item name, if the typed
-     * name matched a real Minecraft item (or one of the browsable example
-     * items). Null if no match was found - the HUD just won't draw an icon.
-     */
     public synchronized Item getCurrentItemIcon() {
         return currentItemIcon;
     }
@@ -117,13 +125,6 @@ public final class AuctionState {
         return Collections.unmodifiableList(items);
     }
 
-    /**
-     * Tries to resolve a typed item name to a real Minecraft item, so the
-     * HUD can show its icon. First tries a direct vanilla registry match
-     * (e.g. "Elytra" -> minecraft:elytra, "Nether Star" -> minecraft:nether_star),
-     * then falls back to matching against the browsable example item list
-     * by display name. Returns null if nothing matches.
-     */
     private Item resolveItemIcon(String name) {
         if (name == null || name.isBlank()) {
             return null;
