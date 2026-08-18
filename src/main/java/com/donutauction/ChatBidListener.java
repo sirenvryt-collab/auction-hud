@@ -24,34 +24,33 @@ public final class ChatBidListener {
 
     // Player names are 1-16 chars of [A-Za-z0-9_]. Amount may have a decimal
     // point, thousands separators and an optional K/M/B/T shorthand suffix.
+    // Not anchored to the whole line - real DonutSMP messages can have extra
+    // text/formatting before or after this exact phrase (tags, punctuation,
+    // "for the <item>!", etc.), so we search for the phrase anywhere in the
+    // message instead of requiring an exact full-line match.
     private static final Pattern PAID_YOU_PATTERN = Pattern.compile(
-            "^(?<name>[A-Za-z0-9_]{1,16}) paid you \\$ ?(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kKmMbBtT]?)$"
+            "(?<![A-Za-z0-9_])(?<name>[A-Za-z0-9_]{1,16}) paid you \\$ ?(?<amount>[0-9][0-9,]*(?:\\.[0-9]+)?[kKmMbBtT]?)"
     );
 
     private ChatBidListener() {
     }
 
     public static void register() {
-        // ALLOW_GAME fires for both chat and system messages that are
-        // actually displayed in chat; returning true from the handler lets
-        // the message continue to render normally in chat.
         ClientReceiveMessageEvents.ALLOW_GAME.register(ChatBidListener::onGameMessage);
     }
 
     private static boolean onGameMessage(Text message, boolean overlay) {
         if (overlay) {
-            // Action bar message, not a chat line - ignore.
             return true;
         }
 
-        // Only bother parsing while we're actually on DonutSMP.
         if (!ServerDetector.isDonutSmp()) {
             return true;
         }
 
         String plain = message.getString().trim();
         Matcher matcher = PAID_YOU_PATTERN.matcher(plain);
-        if (!matcher.matches()) {
+        if (!matcher.find()) {
             return true;
         }
 
@@ -62,7 +61,6 @@ public final class ChatBidListener {
             AuctionState.INSTANCE.registerBid(bidderName, amount);
         }
 
-        // Always let the original message continue to display in chat.
         return true;
     }
 }
