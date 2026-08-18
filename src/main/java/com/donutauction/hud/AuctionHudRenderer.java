@@ -19,7 +19,7 @@ public final class AuctionHudRenderer implements HudElement {
     public static boolean hudVisible = true;
 
     private static final int PANEL_WIDTH = 210;
-    private static final int PANEL_HEIGHT = 78;
+    private static final int PANEL_HEIGHT = 92;
     private static final int MARGIN = 8;
     private static final int ICON_SIZE = 16;
 
@@ -94,6 +94,7 @@ public final class AuctionHudRenderer implements HudElement {
         context.drawText(textRenderer, Text.literal(itemLine), itemTextX, contentY, 0xFFFFFFFF, true);
         contentY += itemRowHeight;
 
+        // Countdown timer.
         long remainingMs = state.getRemainingMillis();
         String timeStr = formatDuration(remainingMs);
         int timeColor = pickTimeColor(remainingMs);
@@ -104,6 +105,16 @@ public final class AuctionHudRenderer implements HudElement {
         context.drawText(textRenderer, Text.literal(timeStr), contentX + labelWidth, contentY, timeColor, true);
         contentY += lineHeight;
 
+        // Minimum bid.
+        Text minBidLabel = Text.literal("Min Bid: ");
+        context.drawText(textRenderer, minBidLabel, contentX, contentY, COLOR_LABEL, true);
+        int minBidLabelWidth = textRenderer.getWidth(minBidLabel);
+        double minimumBid = state.getMinimumBid();
+        String minBidStr = minimumBid > 0 ? "$" + MoneyFormat.format(minimumBid) : "None";
+        context.drawText(textRenderer, Text.literal(minBidStr), contentX + minBidLabelWidth, contentY, 0xFFFFFFFF, true);
+        contentY += lineHeight;
+
+        // Highest bidder.
         Text bidderLabel = Text.literal("Top Bidder: ");
         context.drawText(textRenderer, bidderLabel, contentX, contentY, COLOR_LABEL, true);
         int bidderLabelWidth = textRenderer.getWidth(bidderLabel);
@@ -111,6 +122,7 @@ public final class AuctionHudRenderer implements HudElement {
         context.drawText(textRenderer, Text.literal(bidderName), contentX + bidderLabelWidth, contentY, COLOR_BIDDER, true);
         contentY += lineHeight;
 
+        // Highest bid amount.
         Text bidLabel = Text.literal("Bid: ");
         context.drawText(textRenderer, bidLabel, contentX, contentY, COLOR_LABEL, true);
         int bidLabelWidth = textRenderer.getWidth(bidLabel);
