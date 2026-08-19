@@ -14,8 +14,8 @@ public final class AuctionState {
 
     public static final AuctionState INSTANCE = new AuctionState();
 
+    /** How long a fresh auction runs for by default. */
     private static final long DEFAULT_DURATION_MS = 5 * 60 * 1000L;
-    private static final long BID_EXTENSION_MS = 30 * 1000L;
 
     private final List<AuctionItem> items = new ArrayList<>();
 
@@ -27,7 +27,6 @@ public final class AuctionState {
     private long auctionEndTimeMillis;
     private long durationMillis = DEFAULT_DURATION_MS;
 
-    /** Whether an auction is currently running. Only true between /auctionstart and expiry/stop. */
     private boolean active = false;
 
     private AuctionState() {
@@ -43,19 +42,10 @@ public final class AuctionState {
         resetTimer();
     }
 
-    /** Stops the current auction (if any) and hides the HUD. Called by /auctionstop. */
     public synchronized void stop() {
         this.active = false;
     }
 
-    /**
-     * True only while an auction has been started AND the timer hasn't run
-     * out yet. Once the timer hits zero, this PERMANENTLY flips `active` to
-     * false right here - it's not just a computed check. That's what stops a
-     * late "paid you" bid from ever reviving/extending an ended auction:
-     * registerBid() calls isActive() first, sees active already latched to
-     * false, and bails out before touching the highest bid or the timer.
-     */
     public synchronized boolean isActive() {
         if (active && isEnded()) {
             active = false;
@@ -67,6 +57,12 @@ public final class AuctionState {
         return minimumBid;
     }
 
+    /**
+     * Called whenever a "<name> paid you $ <amount>" chat message is parsed.
+     * Updates the highest bidder if this bid beats the current one and
+     * meets the minimum. The timer is never touched here - once started it
+     * only ever counts down to zero, no matter how many bids come in.
+     */
     public synchronized void registerBid(String bidderName, double amount) {
         if (!isActive() || amount <= 0 || amount < minimumBid) {
             return;
@@ -74,15 +70,6 @@ public final class AuctionState {
         if (amount > highestBid) {
             highestBid = amount;
             highestBidder = bidderName;
-            extendIfNearEnd();
-        }
-    }
-
-    private void extendIfNearEnd() {
-        long now = System.currentTimeMillis();
-        long remaining = auctionEndTimeMillis - now;
-        if (remaining < BID_EXTENSION_MS) {
-            auctionEndTimeMillis = now + BID_EXTENSION_MS;
         }
     }
 
