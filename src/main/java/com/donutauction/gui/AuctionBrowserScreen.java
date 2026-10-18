@@ -19,8 +19,8 @@ import java.util.stream.Collectors;
 
 /**
  * Full-screen auction item browser: a search/filter bar at the top and a
- * scrollable, hoverable list of items below it. Purely cosmetic/browsing -
- * clicking a row does not currently place a bid, it just highlights it.
+ * scrollable, hoverable list of items below it. Clicking a row starts an
+ * auction for that item (starting bid + 5 minute timer) and closes the screen.
  */
 public class AuctionBrowserScreen extends Screen {
 
@@ -29,6 +29,7 @@ public class AuctionBrowserScreen extends Screen {
     private static final int LIST_BOTTOM_MARGIN = 16;
     private static final int LIST_SIDE_MARGIN = 60;
     private static final int MAX_LIST_WIDTH = 420;
+    private static final int DEFAULT_DURATION_SECONDS = 5 * 60;
 
     private TextFieldWidget searchField;
     private String searchQuery = "";
@@ -162,7 +163,7 @@ public class AuctionBrowserScreen extends Screen {
         // Footer hint.
         context.drawCenteredTextWithShadow(
                 this.textRenderer,
-                Text.literal("Scroll to browse  |  Type to search  |  Esc to close").formatted(Formatting.DARK_GRAY),
+                Text.literal("Click an item to start its auction  |  Scroll  |  Type to search  |  Esc to close").formatted(Formatting.DARK_GRAY),
                 this.width / 2,
                 this.height - 12,
                 0xFF777777
@@ -268,11 +269,26 @@ public class AuctionBrowserScreen extends Screen {
             int index = relativeY / ROW_HEIGHT;
             if (index >= 0 && index < filteredItems.size()) {
                 selectedItem = filteredItems.get(index);
+                startAuctionFor(selectedItem);
                 return true;
             }
         }
 
         return super.mouseClicked(click, doubled);
+    }
+
+    private void startAuctionFor(AuctionItem item) {
+        AuctionState.INSTANCE.start(item.displayName(), item.item(), item.startingBid(), DEFAULT_DURATION_SECONDS);
+        if (this.client != null && this.client.player != null) {
+            this.client.player.sendMessage(
+                    Text.literal("[Auction] ").formatted(Formatting.BLUE, Formatting.BOLD)
+                            .append(Text.literal("Started auction for ").formatted(Formatting.GRAY))
+                            .append(Text.literal(item.displayName()).formatted(Formatting.WHITE))
+                            .append(Text.literal(" (min bid $" + MoneyFormat.format(item.startingBid()) + ", 5:00)")
+                                    .formatted(Formatting.GRAY)),
+                    false);
+        }
+        this.close();
     }
 
     @Override
