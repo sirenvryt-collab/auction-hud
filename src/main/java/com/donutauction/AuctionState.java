@@ -7,8 +7,10 @@ import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public final class AuctionState {
 
@@ -16,6 +18,9 @@ public final class AuctionState {
 
     /** How long a fresh auction runs for by default. */
     private static final long DEFAULT_DURATION_MS = 5 * 60 * 1000L;
+
+    /** Starting bid used for items that aren't in the curated price list. */
+    private static final double DEFAULT_STARTING_BID = 10_000;
 
     private final List<AuctionItem> items = new ArrayList<>();
 
@@ -29,13 +34,31 @@ public final class AuctionState {
 
     private boolean active = false;
 
+    /** Full browsable list (curated items first, then every other vanilla item). Built lazily. */
+    private List<AuctionItem> allItems = null;
+
+    /** Result of an auction that just finished, waiting to be announced in chat. */
+    private AuctionResult pendingResult = null;
+
+    /** Snapshot of how an auction ended. */
+    public record AuctionResult(String itemName, String winner, double winningBid) {
+        public boolean hasWinner() {
+            return winner != null && winningBid > 0;
+        }
+    }
+
     private AuctionState() {
         seedExampleItems();
     }
 
     public synchronized void start(String itemName, double minimumBid, int durationSec) {
+        start(itemName, resolveItemIcon(itemName), minimumBid, durationSec);
+    }
+
+    public synchronized void start(String itemName, Item icon, double minimumBid, int durationSec) {
         this.currentItemName = itemName;
-        this.currentItemIcon = resolveItemIcon(itemName);
+        this.currentItemIcon = icon;
+        this.pendingResult = null;
         this.minimumBid = Math.max(0, minimumBid);
         this.durationMillis = Math.max(1, durationSec) * 1000L;
         this.active = true;
@@ -43,14 +66,28 @@ public final class AuctionState {
     }
 
     public synchronized void stop() {
-        this.active = false;
+        if (active) {
+            finishAuction();
+        }
     }
 
     public synchronized boolean isActive() {
         if (active && isEnded()) {
-            active = false;
+            finishAuction();
         }
         return active;
+    }
+
+    private void finishAuction() {
+        active = false;
+        pendingResult = new AuctionResult(currentItemName, highestBidder, highestBid);
+    }
+
+    /** Returns the result of a just-finished auction exactly once, then null until the next one ends. */
+    public synchronized AuctionResult takePendingResult() {
+        AuctionResult result = pendingResult;
+        pendingResult = null;
+        return result;
     }
 
     public synchronized double getMinimumBid() {
@@ -108,8 +145,26 @@ public final class AuctionState {
         return currentItemIcon;
     }
 
-    public List<AuctionItem> getItems() {
-        return Collections.unmodifiableList(items);
+    public synchronized List<AuctionItem> getItems() {
+        if (allItems == null) {
+            List<AuctionItem> built = new ArrayList<>(items);
+            Set<Item> curated = new HashSet<>();
+            for (AuctionItem item : items) {
+                curated.add(item.item());
+            }
+
+            List<AuctionItem> rest = new ArrayList<>();
+            for (Item item : Registries.ITEM) {
+                if (item == Items.AIR || curated.contains(item)) {
+                    continue;
+                }
+                rest.add(new AuctionItem(item.getName().getString(), item, DEFAULT_STARTING_BID));
+            }
+            rest.sort((a, b) -> a.displayName().compareToIgnoreCase(b.displayName()));
+            built.addAll(rest);
+            allItems = Collections.unmodifiableList(built);
+        }
+        return allItems;
     }
 
     private Item resolveItemIcon(String name) {
