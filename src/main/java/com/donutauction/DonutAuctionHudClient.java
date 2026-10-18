@@ -81,12 +81,39 @@ public class DonutAuctionHudClient implements ClientModInitializer {
         ));
     }
 
+    private static void announceResult(MinecraftClient client, AuctionState.AuctionResult result) {
+        Text message;
+        if (result.hasWinner()) {
+            message = Text.literal("[Auction] ").formatted(Formatting.BLUE, Formatting.BOLD)
+                    .append(Text.literal(result.winner()).formatted(Formatting.AQUA, Formatting.BOLD))
+                    .append(Text.literal(" won ").formatted(Formatting.GRAY))
+                    .append(Text.literal(result.itemName()).formatted(Formatting.WHITE))
+                    .append(Text.literal(" with a bid of ").formatted(Formatting.GRAY))
+                    .append(Text.literal("$" + MoneyFormat.format(result.winningBid())).formatted(Formatting.GREEN))
+                    .append(Text.literal("!").formatted(Formatting.GRAY));
+        } else {
+            message = Text.literal("[Auction] ").formatted(Formatting.BLUE, Formatting.BOLD)
+                    .append(Text.literal("Auction for " + result.itemName() + " ended with no bids.")
+                            .formatted(Formatting.GRAY));
+        }
+        client.player.sendMessage(message, false);
+    }
+
     private int runStart(String item, double minBid, int seconds) {
         AuctionState.INSTANCE.start(item, minBid, seconds);
         return 1;
     }
 
     private void onClientTick(MinecraftClient client) {
+        // Polling isActive() makes the state notice a timer that just hit zero.
+        AuctionState.INSTANCE.isActive();
+        if (client.player != null) {
+            AuctionState.AuctionResult result = AuctionState.INSTANCE.takePendingResult();
+            if (result != null) {
+                announceResult(client, result);
+            }
+        }
+
         while (openBrowserKey.wasPressed()) {
             if (client.currentScreen == null && ServerDetector.isDonutSmp()) {
                 client.setScreen(new AuctionBrowserScreen());
