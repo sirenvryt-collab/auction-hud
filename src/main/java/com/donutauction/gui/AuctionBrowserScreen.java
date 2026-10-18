@@ -36,7 +36,7 @@ public class AuctionBrowserScreen extends Screen {
     private static final int MAX_LIST_WIDTH = 420;
 
     private static final int PANEL_WIDTH = 300;
-    private static final int PANEL_HEIGHT = 200;
+    private static final int PANEL_HEIGHT = 228;
     private static final int PANEL_TOP = 70;
     private static final int MAX_DURATION_SECONDS = 24 * 60 * 60;
 
@@ -103,28 +103,33 @@ public class AuctionBrowserScreen extends Screen {
         this.timeField.setChangedListener(text -> this.timeText = text);
         this.addDrawableChild(this.timeField);
 
-        // Quick time presets.
-        String[] presetLabels = {"1m", "5m", "10m", "30m"};
+        // Quick time presets (two rows of four).
+        String[][] presetRows = {
+                {"1m", "5m", "10m", "30m"},
+                {"45s", "30s", "20s", "15s"}
+        };
         int gap = 4;
-        int presetWidth = (innerWidth - gap * (presetLabels.length - 1)) / presetLabels.length;
-        for (int i = 0; i < presetLabels.length; i++) {
-            final String preset = presetLabels[i];
-            ButtonWidget button = ButtonWidget.builder(Text.literal(preset), b -> {
-                        this.timeField.setText(preset);
-                        this.errorMessage = "";
-                    })
-                    .dimensions(innerLeft + i * (presetWidth + gap), PANEL_TOP + 130, presetWidth, 18)
-                    .build();
-            setupButtons.add(button);
-            this.addDrawableChild(button);
+        int presetWidth = (innerWidth - gap * 3) / 4;
+        for (int row = 0; row < presetRows.length; row++) {
+            for (int i = 0; i < presetRows[row].length; i++) {
+                final String preset = presetRows[row][i];
+                ButtonWidget button = ButtonWidget.builder(Text.literal(preset), b -> {
+                            this.timeField.setText(preset);
+                            this.errorMessage = "";
+                        })
+                        .dimensions(innerLeft + i * (presetWidth + gap), PANEL_TOP + 130 + row * 22, presetWidth, 18)
+                        .build();
+                setupButtons.add(button);
+                this.addDrawableChild(button);
+            }
         }
 
         int bottomButtonWidth = (innerWidth - gap) / 2;
         ButtonWidget backButton = ButtonWidget.builder(Text.literal("Back"), b -> exitSetupMode())
-                .dimensions(innerLeft, PANEL_TOP + 170, bottomButtonWidth, 20)
+                .dimensions(innerLeft, PANEL_TOP + 198, bottomButtonWidth, 20)
                 .build();
         ButtonWidget startButton = ButtonWidget.builder(Text.literal("Start Auction"), b -> confirmStart())
-                .dimensions(innerLeft + bottomButtonWidth + gap, PANEL_TOP + 170, bottomButtonWidth, 20)
+                .dimensions(innerLeft + bottomButtonWidth + gap, PANEL_TOP + 198, bottomButtonWidth, 20)
                 .build();
         setupButtons.add(backButton);
         setupButtons.add(startButton);
@@ -383,7 +388,7 @@ public class AuctionBrowserScreen extends Screen {
         if (!errorMessage.isEmpty()) {
             context.drawText(this.textRenderer,
                     Text.literal(errorMessage).formatted(Formatting.RED),
-                    innerLeft, PANEL_TOP + 154, 0xFFFF5555, false);
+                    innerLeft, PANEL_TOP + 178, 0xFFFF5555, false);
         }
     }
 
